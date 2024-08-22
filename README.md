@@ -1,5 +1,7 @@
 # Product Name
 
+[![CI](https://github.com/rafaelesantos/refds-gamification/actions/workflows/swift.yml/badge.svg)](https://github.com/rafaelesantos/refds-gamification/actions/workflows/swift.yml)
+
 `RefdsGamification` is a versatile library designed to implement the concept of gamification in any iOS application. This framework enables you to easily integrate achievements, experience points (XP), virtual currencies, and sync them with Game Center, making it an ideal solution for enhancing user engagement in your apps.
 
 ## Key Features
