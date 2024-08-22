@@ -17,15 +17,15 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .package(url: "https://github.com/rafaelesantos/.git", branch: "main")
+        .package(url: "https://github.com/rafaelesantos/refds-gamification.git", branch: "main")
     ],
     targets: [
         .target(
             name: "YourProject",
             dependencies: [
                 .product(
-                    name: "",
-                    package: ""),
+                    name: "RefdsGamification",
+                    package: "refds-gamification"),
             ]),
     ]
 )
