@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 import RefdsShared
 import GameKit
 
@@ -60,5 +60,19 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
         #else
         gameCenterViewController.dismiss(animated: true)
         #endif
+    }
+    
+    public func getPhoto() -> Image? {
+        var image: Image?
+        let group = DispatchGroup()
+        group.enter()
+        GKLocalPlayer.local.loadPhoto(for: .normal) { uiImage, error in
+            if let uiImage = uiImage {
+                image = Image(uiImage: uiImage)
+            }
+            group.leave()
+        }
+        group.wait()
+        return image
     }
 }
