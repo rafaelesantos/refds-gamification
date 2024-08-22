@@ -64,7 +64,12 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
     
     public func loadPhoto(completion: @escaping (Image) -> Void) {
         GKLocalPlayer.local.loadPhoto(for: .normal) { uiImage, error in
-            if let uiImage = uiImage { completion(Image(uiImage: uiImage)) }
+            if let uiImage = uiImage { 
+                #if os(macOS)
+                #else
+                completion(Image(uiImage: uiImage))
+                #endif
+            }
         }
     }
 }
