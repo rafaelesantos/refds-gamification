@@ -66,11 +66,13 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
         var image: Image?
         let group = DispatchGroup()
         group.enter()
-        GKLocalPlayer.local.loadPhoto(for: .normal) { uiImage, error in
-            if let uiImage = uiImage {
-                image = Image(uiImage: uiImage)
+        DispatchQueue.global(qos: .background).async {
+            GKLocalPlayer.local.loadPhoto(for: .normal) { uiImage, error in
+                if let uiImage = uiImage {
+                    image = Image(uiImage: uiImage)
+                }
+                group.leave()
             }
-            group.leave()
         }
         group.wait()
         return image
