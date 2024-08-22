@@ -1,4 +1,4 @@
-import UIKit
+import Foundation
 import RefdsShared
 import GameKit
 
@@ -11,10 +11,7 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
             if localPlayer.isAuthenticated {
                 completion(.success(()))
             } else if let viewController = viewController {
-                UIApplication.shared.rootViewController?.present(
-                    viewController,
-                    animated: true
-                )
+                RefdsApplication.shared.rootViewController?.present(viewController.refdsViewController)
             } else if let error = error {
                 completion(.failure(error.refdsError))
             }
@@ -43,10 +40,7 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
         let viewController = GKGameCenterViewController(state: .achievements)
         viewController.gameCenterDelegate = self
         
-        UIApplication.shared.rootViewController?.present(
-            viewController,
-            animated: true
-        )
+        RefdsApplication.shared.rootViewController?.present(viewController.refdsViewController)
     }
     
     public func loadAchievements(completion: @escaping (RefdsResult<[GameCenterAchievementModel]>) -> Void) {
@@ -61,6 +55,10 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
     }
     
     public func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
+        #if os(macOS)
+        gameCenterViewController.dismiss(gameCenterViewController)
+        #else
         gameCenterViewController.dismiss(animated: true)
+        #endif
     }
 }
