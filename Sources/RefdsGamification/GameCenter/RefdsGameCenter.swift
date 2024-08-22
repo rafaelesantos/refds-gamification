@@ -1,5 +1,4 @@
-import Foundation
-import SwiftUI
+import UIKit
 import RefdsShared
 import GameKit
 
@@ -14,8 +13,7 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
             } else if let viewController = viewController {
                 UIApplication.shared.rootViewController?.present(
                     viewController,
-                    animated: true,
-                    completion: nil
+                    animated: true
                 )
             } else if let error = error {
                 completion(.failure(error.refdsError))
@@ -47,8 +45,7 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
         
         UIApplication.shared.rootViewController?.present(
             viewController,
-            animated: true,
-            completion: nil
+            animated: true
         )
     }
     
@@ -64,9 +61,6 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
     }
     
     public func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
-        gameCenterViewController.dismiss(
-            animated: true,
-            completion: nil
-        )
+        gameCenterViewController.dismiss(animated: true)
     }
 }
