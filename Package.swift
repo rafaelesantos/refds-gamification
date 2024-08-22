@@ -20,9 +20,15 @@ let package = Package(
             name: "RefdsGamification",
             targets: ["RefdsGamification"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/rafaelesantos/refds-shared.git", branch: "main")
+    ],
     targets: [
         .target(
-            name: "RefdsGamification"),
+            name: "RefdsGamification",
+            dependencies: [
+                .product(name: "RefdsShared", package: "refds-shared")
+            ]),
         .testTarget(
             name: "RefdsGamificationTests",
             dependencies: ["RefdsGamification"]),
