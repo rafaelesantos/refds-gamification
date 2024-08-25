@@ -1,4 +1,4 @@
-# Product Name
+# 🎮 Refds Gamification
 
 [![CI](https://github.com/rafaelesantos/refds-gamification/actions/workflows/swift.yml/badge.svg)](https://github.com/rafaelesantos/refds-gamification/actions/workflows/swift.yml)
 
