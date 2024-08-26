@@ -22,7 +22,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/rafaelesantos/refds-shared.git", branch: "main"),
-        .package(url: "https://github.com/rafaelesantos/refds-design-system.git", branch: "main"),
         .package(url: "https://github.com/rafaelesantos/refds-injection.git", branch: "main")
     ],
     targets: [
@@ -30,7 +29,6 @@ let package = Package(
             name: "RefdsGamification",
             dependencies: [
                 .product(name: "RefdsShared", package: "refds-shared"),
-                .product(name: "RefdsUI", package: "refds-design-system"),
                 .product(name: "RefdsInjection", package: "refds-injection")
             ]),
         .testTarget(
