@@ -1,0 +1,157 @@
+import Foundation
+import RefdsShared
+import RefdsInjection
+
+public protocol RefdsGamificationProtocol {
+    static var instance: RefdsGamificationProtocol { get }
+    var center: GamificationCenter? { get }
+    
+    func signIn(completion: @escaping (RefdsResult<GameCenterUser>) -> Void)
+    func reportSequence(for sequenceIdentifier: GamificationIdentifier)
+    func reportTask(
+        for taskIdentifier: GamificationIdentifier,
+        completion: @escaping ([GamificationIdentifier]) -> Void
+    )
+}
+
+public extension RefdsGamificationProtocol {
+    static var instance: RefdsGamificationProtocol {
+        RefdsGamification()
+    }
+}
+
+final class RefdsGamification: RefdsGamificationProtocol {
+    @RefdsDefaults(key: "refds.gamification.center.\(RefdsApplication.shared.id ?? "")")
+    var center: GamificationCenter?
+    
+    private let gameCenter: RefdsGameCenter = .init()
+    private let task: RefdsTask = .init(
+        label: "refds.gamification",
+        qos: .background,
+        attributes: []
+    )
+    
+    init() {}
+    
+    func signIn(completion: @escaping (RefdsResult<GameCenterUser>) -> Void) {
+        gameCenter.authenticate { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .success:
+                var user = GameCenterUserModel(
+                    name: self.gameCenter.localPlayer.displayName,
+                    alias: self.gameCenter.localPlayer.alias
+                )
+                
+                self.gameCenter.loadPhoto(completion: { result in
+                    switch result {
+                    case .success(let photo): user.photo = photo
+                    case .failure: break
+                    }
+                    self.center?.gameCenterUser = user
+                    completion(.success(user))
+                })
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    func reportTask(
+        for taskIdentifier: GamificationIdentifier,
+        completion: @escaping ([GamificationIdentifier]) -> Void
+    ) {
+        let item = { [weak self] in
+            guard let self = self,
+                  var center = self.center,
+                  let task = center.tasks[taskIdentifier.id]
+            else { return }
+            let completed = center.completed
+            center.tasks[taskIdentifier.id]?.completedDate = .now
+            
+            center.score.value += task.score
+            center.coin.value += task.coin
+            
+            center.completed[taskIdentifier.id] = true
+            center.completed = checkCompleted(missions: Array(center.missions.values), on: center)
+            center.completed = checkCompleted(challenges: Array(center.challenges.values), on: center)
+            let updateCompletedIDs = center.completed.filter { $0.value == true }.compactMap {
+                completed[$0.key] != $0.value ? $0.key : nil
+            }
+            
+            self.center = center
+            completion(getIdentifiers(with: updateCompletedIDs))
+        }
+        
+        task.execute(items: [item])
+    }
+    
+    func reportSequence(for sequenceIdentifier: GamificationIdentifier) {
+        let item = { [weak self] in
+            guard let self = self, var center = self.center else { return }
+            guard let maxDate = center.sequences[sequenceIdentifier.id]?.historic.max(),
+                  let day = Calendar.current.dateComponents([.day], from: maxDate, to: .now).day
+            else {
+                center.sequences[sequenceIdentifier.id]?.historic = [.now]
+                return
+            }
+            let historic = center.sequences[sequenceIdentifier.id]?.historic ?? []
+            center.sequences[sequenceIdentifier.id]?.historic = day != .zero ? [] : historic + [.now]
+            self.center = center
+        }
+        
+        task.execute(items: [item])
+    }
+    
+    private func checkCompleted(
+        missions: [GamificationMission],
+        on center: GamificationCenter?
+    ) -> [String: Bool] {
+        guard var center = center else { return [:] }
+        var completed = center.completed
+        missions.forEach { mission in
+            if center.completed[mission.id] != true {
+                let isCompleted = mission.tasks.allSatisfy { center.completed[$0.id] == true }
+                center.score.value += isCompleted ? mission.score : .zero
+                center.coin.value += isCompleted ? mission.coin : .zero
+                completed[mission.id] = isCompleted
+                self.center?.score = center.score
+                self.center?.coin = center.coin
+            }
+        }
+        return completed
+    }
+    
+    private func checkCompleted(
+        challenges: [GamificationChallenge],
+        on center: GamificationCenter?
+    ) -> [String: Bool] {
+        guard var center = center else { return [:] }
+        var completed = center.completed
+        challenges.forEach { challenge in
+            if center.completed[challenge.id] != true {
+                let isCompleted = challenge.missions.allSatisfy { center.completed[$0.id] == true }
+                center.score.value += isCompleted ? challenge.score : .zero
+                center.coin.value += isCompleted ? challenge.coin : .zero
+                completed[challenge.id] = isCompleted
+                self.center?.score = center.score
+                self.center?.coin = center.coin
+            }
+        }
+        return completed
+    }
+    
+    private func getIdentifiers(with ids: [String]) -> [GamificationIdentifier] {
+        guard let center = center else { return [] }
+        var identifiers = [GamificationIdentifier]()
+        ids.forEach { id in
+            if let identifier = center.challenges[id] ??
+                center.missions[id] ??
+                center.tasks[id] ??
+                center.sequences[id] {
+                identifiers += [identifier]
+            }
+        }
+        return identifiers
+    }
+}

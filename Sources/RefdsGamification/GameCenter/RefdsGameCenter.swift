@@ -2,28 +2,39 @@ import SwiftUI
 import RefdsShared
 import GameKit
 
-public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
-    public static let shared = RefdsGameCenter()
+final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
+    private var signInViewController: RefdsViewController? {
+        didSet { presentSignIn() }
+    }
     
-    public func authenticate(completion: @escaping (RefdsResult<Void>) -> Void) {
-        let localPlayer = GKLocalPlayer.local
-        localPlayer.authenticateHandler = { viewController, error in
+    var localPlayer: GKLocalPlayer {
+        .local
+    }
+    
+    func authenticate(completion: @escaping (RefdsResult<Void>) -> Void) {
+        let localPlayer = localPlayer
+        localPlayer.authenticateHandler = nil
+        localPlayer.authenticateHandler = { [weak self] viewController, error in
             if localPlayer.isAuthenticated {
                 completion(.success(()))
             } else if let viewController = viewController {
-                RefdsApplication.shared.rootViewController?.present(viewController.refdsViewController)
+                self?.signInViewController = viewController.refdsViewController
             } else if let error = error {
                 completion(.failure(error.refdsError))
             }
         }
     }
     
-    public func reportAchievement(
-        for identifier: GameCenterIdentifierProtocol,
+    private func presentSignIn() {
+        RefdsApplication.shared.rootViewController?.present(signInViewController)
+    }
+    
+    func reportAchievement(
+        for identifier: GamificationIdentifier,
         percentComplete: Double,
         completion: @escaping (RefdsResult<Void>) -> Void
     ) {
-        let achievement = GKAchievement(identifier: identifier.rawValue)
+        let achievement = GKAchievement(identifier: identifier.id)
         achievement.percentComplete = percentComplete
         achievement.showsCompletionBanner = true
         
@@ -36,25 +47,18 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
         }
     }
     
-    public func showAchievements() {
+    func resetAchievements() {
+        GKAchievement.resetAchievements()
+    }
+    
+    func showAchievements() {
         let viewController = GKGameCenterViewController(state: .achievements)
         viewController.gameCenterDelegate = self
         
         RefdsApplication.shared.rootViewController?.present(viewController.refdsViewController)
     }
     
-    public func loadAchievements(completion: @escaping (RefdsResult<[GameCenterAchievementModel]>) -> Void) {
-        GKAchievement.loadAchievements { achievements, error in
-            if let error = error {
-                completion(.failure(error.refdsError))
-            } else if let achievements = achievements {
-                let models = achievements.map { GameCenterAchievementModel(achievement: $0) }
-                completion(.success(models))
-            }
-        }
-    }
-    
-    public func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
+    func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
         #if os(macOS)
         gameCenterViewController.dismiss(gameCenterViewController)
         #else
@@ -62,14 +66,15 @@ public final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
         #endif
     }
     
-    public func loadPhoto(completion: @escaping (Image) -> Void) {
-        GKLocalPlayer.local.loadPhoto(for: .normal) { uiImage, error in
-            if let uiImage = uiImage { 
+    func loadPhoto(completion: @escaping (RefdsResult<Data?>) -> Void) {
+        localPlayer.loadPhoto(for: .normal) { uiImage, error in
+            if let uiImage = uiImage {
                 #if os(macOS)
                 #else
-                completion(Image(uiImage: uiImage))
+                return completion(.success(uiImage.pngData()))
                 #endif
             }
+            completion(.failure(.custom(message: error?.localizedDescription ?? "loadPhoto")))
         }
     }
 }
