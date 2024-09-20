@@ -2,27 +2,9 @@ import Foundation
 import RefdsShared
 import RefdsInjection
 
-public protocol RefdsGamificationProtocol {
-    static var instance: RefdsGamificationProtocol { get }
-    var center: GamificationCenter? { get }
-    
-    func signIn(completion: @escaping (RefdsResult<GameCenterUser>) -> Void)
-    func reportSequence(for sequenceIdentifier: GamificationIdentifier)
-    func reportTask(
-        for taskIdentifier: GamificationIdentifier,
-        completion: @escaping ([GamificationIdentifier]) -> Void
-    )
-}
-
-public extension RefdsGamificationProtocol {
-    static var instance: RefdsGamificationProtocol {
-        RefdsGamification()
-    }
-}
-
-final class RefdsGamification: RefdsGamificationProtocol {
+final class RefdsGamification<Center: GamificationCenter> {
     @RefdsDefaults(key: "refds.gamification.center.\(RefdsApplication.shared.id ?? "")")
-    var center: GamificationCenter?
+    var center: Center?
     
     private let gameCenter: RefdsGameCenter = .init()
     private let task: RefdsTask = .init(
@@ -105,8 +87,8 @@ final class RefdsGamification: RefdsGamificationProtocol {
     
     private func checkCompleted(
         missions: [GamificationMission],
-        on center: GamificationCenter?
-    ) -> GamificationCenter? {
+        on center: Center?
+    ) -> Center? {
         guard var center = center else { return nil }
         var completed = center.completed
         missions.forEach { mission in
@@ -123,8 +105,8 @@ final class RefdsGamification: RefdsGamificationProtocol {
     
     private func checkCompleted(
         challenges: [GamificationChallenge],
-        on center: GamificationCenter?
-    ) -> GamificationCenter? {
+        on center: Center?
+    ) -> Center? {
         guard var center = center else { return nil }
         var completed = center.completed
         challenges.forEach { challenge in
