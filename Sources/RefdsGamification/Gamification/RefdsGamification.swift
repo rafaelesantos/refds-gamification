@@ -73,13 +73,13 @@ final class RefdsGamification: RefdsGamificationProtocol {
             center.coin.value += task.coin
             
             center.completed[taskIdentifier.id] = true
-            center.completed = checkCompleted(missions: Array(center.missions.values), on: center)
-            center.completed = checkCompleted(challenges: Array(center.challenges.values), on: center)
+            self.center = center
+            self.center = checkCompleted(missions: Array(center.missions.values), on: center)
+            self.center = checkCompleted(challenges: Array(center.challenges.values), on: center)
             let updateCompletedIDs = center.completed.filter { $0.value == true }.compactMap {
                 completed[$0.key] != $0.value ? $0.key : nil
             }
             
-            self.center = center
             completion(getIdentifiers(with: updateCompletedIDs))
         }
         
@@ -106,8 +106,8 @@ final class RefdsGamification: RefdsGamificationProtocol {
     private func checkCompleted(
         missions: [GamificationMission],
         on center: GamificationCenter?
-    ) -> [String: Bool] {
-        guard var center = center else { return [:] }
+    ) -> GamificationCenter? {
+        guard var center = center else { return nil }
         var completed = center.completed
         missions.forEach { mission in
             if center.completed[mission.id] != true {
@@ -115,18 +115,17 @@ final class RefdsGamification: RefdsGamificationProtocol {
                 center.score.value += isCompleted ? mission.score : .zero
                 center.coin.value += isCompleted ? mission.coin : .zero
                 completed[mission.id] = isCompleted
-                self.center?.score = center.score
-                self.center?.coin = center.coin
             }
         }
-        return completed
+        center.completed = completed
+        return center
     }
     
     private func checkCompleted(
         challenges: [GamificationChallenge],
         on center: GamificationCenter?
-    ) -> [String: Bool] {
-        guard var center = center else { return [:] }
+    ) -> GamificationCenter? {
+        guard var center = center else { return nil }
         var completed = center.completed
         challenges.forEach { challenge in
             if center.completed[challenge.id] != true {
@@ -134,11 +133,10 @@ final class RefdsGamification: RefdsGamificationProtocol {
                 center.score.value += isCompleted ? challenge.score : .zero
                 center.coin.value += isCompleted ? challenge.coin : .zero
                 completed[challenge.id] = isCompleted
-                self.center?.score = center.score
-                self.center?.coin = center.coin
             }
         }
-        return completed
+        center.completed = completed
+        return center
     }
     
     private func getIdentifiers(with ids: [String]) -> [GamificationIdentifier] {
