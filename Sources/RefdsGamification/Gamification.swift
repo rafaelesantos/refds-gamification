@@ -2,11 +2,11 @@ import Foundation
 import RefdsShared
 import RefdsInjection
 
-public final class Gamification<Center: GamificationCenter> {
+public final class Gamification<Center: GamificationCenterProtocol> {
     @RefdsDefaults(key: "refds.gamification.center.\(RefdsApplication.shared.id ?? "")")
     public private(set) var center: Center?
     
-    private let gameCenter: RefdsGameCenter = .init()
+    private let gameCenter: GameCenter = .init()
     private let task: RefdsTask = .init(
         label: "refds.gamification",
         qos: .background,
@@ -15,12 +15,12 @@ public final class Gamification<Center: GamificationCenter> {
     
     public init() {}
     
-    public func signIn(completion: @escaping (RefdsResult<GameCenterUser>) -> Void) {
+    public func signIn(completion: @escaping (RefdsResult<GameCenterUserProtocol>) -> Void) {
         gameCenter.authenticate { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success:
-                var user = GameCenterUserModel(
+                var user = GameCenterUser(
                     name: self.gameCenter.localPlayer.displayName,
                     alias: self.gameCenter.localPlayer.alias
                 )
@@ -40,8 +40,8 @@ public final class Gamification<Center: GamificationCenter> {
     }
     
     public func reportTask(
-        for taskIdentifier: GamificationIdentifier,
-        completion: @escaping ([GamificationIdentifier]) -> Void
+        for taskIdentifier: GamificationIdentifierProtocol,
+        completion: @escaping ([GamificationIdentifierProtocol]) -> Void
     ) {
         let item = { [weak self] in
             guard let self = self,
@@ -51,8 +51,8 @@ public final class Gamification<Center: GamificationCenter> {
             let completed = center.completed
             center.tasks[taskIdentifier.id]?.completedDate = .now
             
-            center.score.value += task.score
-            center.coin.value += task.coin
+            center.score.value += task.score.value
+            center.coin.value += task.coin.value
             
             center.completed[taskIdentifier.id] = true
             self.center = center
@@ -68,7 +68,7 @@ public final class Gamification<Center: GamificationCenter> {
         task.execute(items: [item])
     }
     
-    public func reportSequence(for sequenceIdentifier: GamificationIdentifier) {
+    public func reportSequence(for sequenceIdentifier: GamificationIdentifierProtocol) {
         let item = { [weak self] in
             guard let self = self, var center = self.center else { return }
             guard let maxDate = center.sequences[sequenceIdentifier.id]?.historic.max(),
@@ -86,7 +86,7 @@ public final class Gamification<Center: GamificationCenter> {
     }
     
     private func checkCompleted(
-        missions: [GamificationMission],
+        missions: [GamificationMissionProtocol],
         on center: Center?
     ) -> Center? {
         guard var center = center else { return nil }
@@ -94,8 +94,8 @@ public final class Gamification<Center: GamificationCenter> {
         missions.forEach { mission in
             if center.completed[mission.id] != true {
                 let isCompleted = mission.tasks.allSatisfy { center.completed[$0.id] == true }
-                center.score.value += isCompleted ? mission.score : .zero
-                center.coin.value += isCompleted ? mission.coin : .zero
+                center.score.value += isCompleted ? mission.score.value : .zero
+                center.coin.value += isCompleted ? mission.coin.value : .zero
                 completed[mission.id] = isCompleted
             }
         }
@@ -104,7 +104,7 @@ public final class Gamification<Center: GamificationCenter> {
     }
     
     private func checkCompleted(
-        challenges: [GamificationChallenge],
+        challenges: [GamificationChallengeProtocol],
         on center: Center?
     ) -> Center? {
         guard var center = center else { return nil }
@@ -112,8 +112,8 @@ public final class Gamification<Center: GamificationCenter> {
         challenges.forEach { challenge in
             if center.completed[challenge.id] != true {
                 let isCompleted = challenge.missions.allSatisfy { center.completed[$0.id] == true }
-                center.score.value += isCompleted ? challenge.score : .zero
-                center.coin.value += isCompleted ? challenge.coin : .zero
+                center.score.value += isCompleted ? challenge.score.value : .zero
+                center.coin.value += isCompleted ? challenge.coin.value : .zero
                 completed[challenge.id] = isCompleted
             }
         }
@@ -121,9 +121,9 @@ public final class Gamification<Center: GamificationCenter> {
         return center
     }
     
-    private func getIdentifiers(with ids: [String]) -> [GamificationIdentifier] {
+    private func getIdentifiers(with ids: [String]) -> [GamificationIdentifierProtocol] {
         guard let center = center else { return [] }
-        var identifiers = [GamificationIdentifier]()
+        var identifiers = [GamificationIdentifierProtocol]()
         ids.forEach { id in
             if let identifier = center.challenges[id] ??
                 center.missions[id] ??

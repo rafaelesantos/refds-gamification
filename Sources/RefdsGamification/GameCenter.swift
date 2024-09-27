@@ -2,7 +2,7 @@ import SwiftUI
 import RefdsShared
 import GameKit
 
-final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
+final class GameCenter: NSObject, GKGameCenterControllerDelegate {
     private var signInViewController: RefdsViewController? {
         didSet { presentSignIn() }
     }
@@ -30,7 +30,7 @@ final class RefdsGameCenter: NSObject, GKGameCenterControllerDelegate {
     }
     
     func reportAchievement(
-        for identifier: GamificationIdentifier,
+        for identifier: GamificationIdentifierProtocol,
         percentComplete: Double,
         completion: @escaping (RefdsResult<Void>) -> Void
     ) {
