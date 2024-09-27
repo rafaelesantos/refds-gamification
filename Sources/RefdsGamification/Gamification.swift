@@ -2,9 +2,9 @@ import Foundation
 import RefdsShared
 import RefdsInjection
 
-public final class Gamification<Center: GamificationCenterProtocol> {
+public final class Gamification {
     @RefdsDefaults(key: "refds.gamification.center.\(RefdsApplication.shared.id ?? "")")
-    public private(set) var center: Center?
+    public private(set) var center: GamificationCenter?
     
     private let gameCenter: GameCenter = .init()
     private let task: RefdsTask = .init(
@@ -87,8 +87,8 @@ public final class Gamification<Center: GamificationCenterProtocol> {
     
     private func checkCompleted(
         missions: [GamificationMissionProtocol],
-        on center: Center?
-    ) -> Center? {
+        on center: GamificationCenter?
+    ) -> GamificationCenter? {
         guard var center = center else { return nil }
         var completed = center.completed
         missions.forEach { mission in
@@ -105,8 +105,8 @@ public final class Gamification<Center: GamificationCenterProtocol> {
     
     private func checkCompleted(
         challenges: [GamificationChallengeProtocol],
-        on center: Center?
-    ) -> Center? {
+        on center: GamificationCenter?
+    ) -> GamificationCenter? {
         guard var center = center else { return nil }
         var completed = center.completed
         challenges.forEach { challenge in
