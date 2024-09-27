@@ -2,9 +2,9 @@ import Foundation
 import RefdsShared
 import RefdsInjection
 
-final class RefdsGamification<Center: GamificationCenter> {
+public final class Gamification<Center: GamificationCenter> {
     @RefdsDefaults(key: "refds.gamification.center.\(RefdsApplication.shared.id ?? "")")
-    var center: Center?
+    public private(set) var center: Center?
     
     private let gameCenter: RefdsGameCenter = .init()
     private let task: RefdsTask = .init(
@@ -13,9 +13,9 @@ final class RefdsGamification<Center: GamificationCenter> {
         attributes: []
     )
     
-    init() {}
+    public init() {}
     
-    func signIn(completion: @escaping (RefdsResult<GameCenterUser>) -> Void) {
+    public func signIn(completion: @escaping (RefdsResult<GameCenterUser>) -> Void) {
         gameCenter.authenticate { [weak self] result in
             guard let self = self else { return }
             switch result {
@@ -39,7 +39,7 @@ final class RefdsGamification<Center: GamificationCenter> {
         }
     }
     
-    func reportTask(
+    public func reportTask(
         for taskIdentifier: GamificationIdentifier,
         completion: @escaping ([GamificationIdentifier]) -> Void
     ) {
@@ -68,7 +68,7 @@ final class RefdsGamification<Center: GamificationCenter> {
         task.execute(items: [item])
     }
     
-    func reportSequence(for sequenceIdentifier: GamificationIdentifier) {
+    public func reportSequence(for sequenceIdentifier: GamificationIdentifier) {
         let item = { [weak self] in
             guard let self = self, var center = self.center else { return }
             guard let maxDate = center.sequences[sequenceIdentifier.id]?.historic.max(),
