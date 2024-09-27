@@ -2,9 +2,9 @@ import Foundation
 import RefdsShared
 import RefdsInjection
 
-public final class Gamification {
+public final class Gamification: GamificationProtocol {
     @RefdsDefaults(key: "refds.gamification.center.\(RefdsApplication.shared.id ?? "")")
-    public private(set) var center: GamificationCenter?
+    public var center: GamificationCenter?
     
     private let gameCenter: GameCenter = .init()
     private let task: RefdsTask = .init(
