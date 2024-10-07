@@ -1,7 +1,7 @@
 import Foundation
 import RefdsShared
 
-public protocol GamificationCenterProtocol: RefdsModel {
+public protocol GamificationCenterProtocol: RefdsModel, Sendable {
     var gameCenterUser: GameCenterUserProtocol? { get set }
     var division: GamificationDivisionProtocol { get }
     var score: GamificationRewardProtocol { get set }

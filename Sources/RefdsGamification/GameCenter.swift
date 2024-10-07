@@ -2,79 +2,94 @@ import SwiftUI
 import RefdsShared
 import GameKit
 
-final class GameCenter: NSObject, GKGameCenterControllerDelegate {
+@MainActor
+class GameCenter: NSObject, GKGameCenterControllerDelegate {
     private var signInViewController: RefdsViewController? {
         didSet { presentSignIn() }
     }
     
     var localPlayer: GKLocalPlayer {
-        .local
+        get async { .local }
     }
     
-    func authenticate(completion: @escaping (RefdsResult<Void>) -> Void) {
-        let localPlayer = localPlayer
+    func getUser() async -> GameCenterUserProtocol {
+        await GameCenterUser(
+            name: localPlayer.displayName,
+            alias: localPlayer.alias
+        )
+    }
+    
+    func authenticate() async throws {
+        let localPlayer = await localPlayer
         localPlayer.authenticateHandler = nil
-        localPlayer.authenticateHandler = { [weak self] viewController, error in
-            if localPlayer.isAuthenticated {
-                completion(.success(()))
-            } else if let viewController = viewController {
-                self?.signInViewController = viewController.refdsViewController
-            } else if let error = error {
-                completion(.failure(error.refdsError))
+        try await withCheckedThrowingContinuation { [weak self] continuation in
+            localPlayer.authenticateHandler = { viewController, error in
+                Task {
+                    if localPlayer.isAuthenticated {
+                        continuation.resume(returning: ())
+                    } else if let viewController = viewController {
+                        self?.signInViewController = await viewController.refdsViewController
+                    } else if let error = error {
+                        continuation.resume(throwing: error.refdsError)
+                    }
+                }
             }
         }
     }
     
     private func presentSignIn() {
-        RefdsApplication.shared.rootViewController?.present(signInViewController)
+        Task {
+            await RefdsApplication().rootViewController?.present(signInViewController)
+        }
     }
     
     func reportAchievement(
         for identifier: GamificationIdentifierProtocol,
-        percentComplete: Double,
-        completion: @escaping (RefdsResult<Void>) -> Void
-    ) {
+        percentComplete: Double
+    ) async throws {
         let achievement = GKAchievement(identifier: identifier.id)
         achievement.percentComplete = percentComplete
         achievement.showsCompletionBanner = true
-        
-        GKAchievement.report([achievement]) { error in
-            if let error = error {
-                completion(.failure(error.refdsError))
-            } else {
-                completion(.success(()))
-            }
-        }
+        try await GKAchievement.report([achievement])
     }
     
-    func resetAchievements() {
-        GKAchievement.resetAchievements()
+    func resetAchievements() async throws {
+        try await GKAchievement.resetAchievements()
     }
     
-    func showAchievements() {
+    func showAchievements() async {
         let viewController = GKGameCenterViewController(state: .achievements)
         viewController.gameCenterDelegate = self
         
-        RefdsApplication.shared.rootViewController?.present(viewController.refdsViewController)
+        await RefdsApplication().rootViewController?.present(viewController.refdsViewController)
     }
     
-    func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
-        #if os(macOS)
-        gameCenterViewController.dismiss(gameCenterViewController)
-        #else
-        gameCenterViewController.dismiss(animated: true)
-        #endif
-    }
-    
-    func loadPhoto(completion: @escaping (RefdsResult<Data?>) -> Void) {
-        localPlayer.loadPhoto(for: .normal) { uiImage, error in
-            if let uiImage = uiImage {
-                #if os(macOS)
-                #else
-                return completion(.success(uiImage.pngData()))
-                #endif
-            }
-            completion(.failure(.custom(message: error?.localizedDescription ?? "loadPhoto")))
+    nonisolated func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
+        Task {
+            #if os(macOS)
+            await gameCenterViewController.dismiss(gameCenterViewController)
+            #else
+            await gameCenterViewController.dismiss(animated: true)
+            #endif
         }
     }
+    
+    func getPhoto() async throws -> Data? {
+        let image = try await GKLocalPlayer.local.loadPhoto(for: .normal)
+        return image.pngData()
+    }
 }
+
+#if os(macOS)
+extension NSBitmapImageRep {
+    var png: Data? { representation(using: .png, properties: [:]) }
+}
+
+extension Data {
+    var bitmap: NSBitmapImageRep? { NSBitmapImageRep(data: self) }
+}
+
+extension NSImage: @unchecked @retroactive Sendable {
+    func pngData() -> Data? { tiffRepresentation?.bitmap?.png }
+}
+#endif
